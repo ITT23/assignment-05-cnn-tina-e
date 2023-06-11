@@ -1,16 +1,14 @@
 import cv2
 import json
-from matplotlib import pyplot as plt
 import numpy as np
 import os
-import random
 
 # import a lot of things from keras:
 # sequential model
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 
 # layers
-from keras.layers import Input, Dense, Dropout, Flatten, Conv2D, MaxPooling2D, RandomFlip, RandomRotation, RandomContrast, RandomBrightness
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, RandomFlip, RandomContrast
 
 # loss function
 from keras.metrics import categorical_crossentropy
@@ -21,63 +19,47 @@ from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 # convert data to categorial vector representation
 from keras.utils import to_categorical
 
-# nice progress bar for loading data
-from tqdm.notebook import tqdm
-
 # helper function for train/test split
 from sklearn.model_selection import train_test_split
 
-# import confusion matrix helper function
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
-# import pre-trained model
-from keras.applications.vgg16 import VGG16
-
-# include only those gestures
-CONDITIONS = ['like', 'stop', 'dislike']
-
-# image size
-IMG_SIZE = 64
-SIZE = (IMG_SIZE, IMG_SIZE)
-
-# number of color channels we want to use
-# set to 1 to convert to grayscale
-# set to 3 to use color images
-COLOR_CHANNELS = 1
-
 
 class ModelBuilder:
-    def __init__(self):
+    def __init__(self, color_channels, img_size, path, conditions):
+        self.color_channels = color_channels
+        self.img_size = img_size
+        self.size = (self.img_size, self.img_size)
+        self.path = path
+        self.conditions = conditions
+
         self.annotations = dict()
-        self.images = []
-        self.labels = []
-        self.label_names = []
+        self.images = self.labels = self.label_names = []
         self.X_train = self.X_test = self.y_train = self.y_test = self.train_label = self.test_label = []
         self.reduce_lr = self.stop_early = self.model = None
+
         self.batch_size = 8
-        self.epochs = 10
+        self.epochs = 50
         self.activation = 'relu'
         self.activation_conv = 'LeakyReLU'  # LeakyReLU
         self.layer_count = 2
         self.num_neurons = 64
 
     def load_annotations(self):
-        for condition in CONDITIONS:
-            with open(f'D:/Week6/gesture_dataset_sample/_annotations/{condition}.json') as f:
+        for condition in self.conditions:
+            with open(f'{self.path}/_annotations/{condition}.json') as f:
                 self.annotations[condition] = json.load(f)
 
     def preprocess_image(self, img):
-        if COLOR_CHANNELS == 1:
+        if self.color_channels == 1:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_resized = cv2.resize(img, SIZE)
+        img_resized = cv2.resize(img, self.size)
         return img_resized
 
     def load_images_with_annotations(self):
-        for condition in CONDITIONS:
-            for filename in os.listdir(f'D:/Week6/gesture_dataset_sample/{condition}'):
+        for condition in self.conditions:
+            for filename in os.listdir(f'{self.path}/{condition}'):
                 # extract unique ID from file name
                 UID = filename.split('.')[0]
-                img = cv2.imread(f'D:/Week6/gesture_dataset_sample/{condition}/{filename}')
+                img = cv2.imread(f'{self.path}/{condition}/{filename}')
 
                 # get annotation from the dict we loaded earlier
                 try:
@@ -126,8 +108,8 @@ class ModelBuilder:
         self.train_label = y_train_one_hot
         self.test_label = y_test_one_hot
 
-        self.X_train = self.X_train.reshape(-1, IMG_SIZE, IMG_SIZE, COLOR_CHANNELS)
-        self.X_test = self.X_test.reshape(-1, IMG_SIZE, IMG_SIZE, COLOR_CHANNELS)
+        self.X_train = self.X_train.reshape(-1, self.img_size, self.img_size, self.color_channels)
+        self.X_test = self.X_test.reshape(-1, self.img_size, self.img_size, self.color_channels)
 
     def build_model(self):
         num_classes = len(self.label_names)
@@ -139,19 +121,17 @@ class ModelBuilder:
         # data augmentation (this can also be done beforehand - but don't augment the test dataset!)
         model.add(RandomFlip('horizontal'))
         model.add(RandomContrast(0.1))
-        # model.add(RandomBrightness(0.1))
-        # model.add(RandomRotation(0.2))
 
         # first, we add some convolution layers followed by max pooling
         model.add(
-            Conv2D(64, kernel_size=(9, 9), activation=self.activation_conv, input_shape=(SIZE[0], SIZE[1], COLOR_CHANNELS),
+            Conv2D(64, kernel_size=(9, 9), activation=self.activation_conv, input_shape=(self.img_size, self.img_size, self.color_channels),
                    padding='same'))
         model.add(MaxPooling2D(pool_size=(4, 4), padding='same'))
 
-        model.add(Conv2D(32, (5, 5), activation=self.activation_conv, padding='same'))
+        model.add(Conv2D(64, (5, 5), activation=self.activation_conv, padding='same'))
         model.add(MaxPooling2D(pool_size=(3, 3), padding='same'))
 
-        model.add(Conv2D(32, (3, 3), activation=self.activation_conv, padding='same'))
+        model.add(Conv2D(64, (3, 3), activation=self.activation_conv, padding='same'))
         model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
 
         # dropout layers can drop part of the data during each epoch - this prevents overfitting
@@ -207,4 +187,12 @@ class ModelBuilder:
 
     def predict(self, input):
         prediction = self.model.predict(input)
-        print(self.label_names[np.argmax(prediction)], np.max(prediction))
+        return prediction
+
+    def save_model(self):
+        self.model.save('gesture_recognition_media')
+        np.savetxt('label_names.csv', self.label_names, delimiter=',', fmt='%s')
+
+    def load_model(self):
+        self.model = load_model("gesture_recognition_media")
+        self.label_names = np.genfromtxt('label_names.csv', delimiter=',')
