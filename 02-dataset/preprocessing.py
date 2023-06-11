@@ -7,7 +7,7 @@ import sys
 
 WIDTH = 1080
 HEIGHT = 1920
-WINDOW_NAME = 'select bounding box'
+WINDOW_NAME = 'Select Bounding Box'
 images = []
 
 
