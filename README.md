@@ -26,3 +26,7 @@ Notebook describes the exploration of different image resolutions (12x12 - 256x2
   - **stop gesture: play/pause**
 - model_builder.py: ModelBuilder handles training and prediction
 
+---
+
+note: no venv cause running training within venv kept crashing .o
+
