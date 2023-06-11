@@ -1,3 +1,5 @@
+#%%
+
 from model_builder import ModelBuilder
 from enum import Enum
 import time
@@ -9,10 +11,11 @@ from imutils import perspective
 from tensorflow import keras
 import tensorflow as tf
 from pynput.keyboard import Key, Controller
-
+#%%
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
+#%%
 
 class Gesture(Enum):
     START_PAUSE = 0
@@ -32,6 +35,8 @@ model_builder.prepare_model()
 #new_model = keras.models.load_model('../gesture_recognition')
 
 print("model prep done")
+
+#%%
 
 # read webcam
 video_id = 0
