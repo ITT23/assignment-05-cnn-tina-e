@@ -18,7 +18,7 @@ Notebook describes the exploration of different image resolutions (12x12 - 256x2
 
 # 03 Media Control
 - gesture_recognition_media: Pretrained model if one do not want to train again :)
-**- media_control.py: run this file to start**
+- **media_control.py: run this file to start**
   - **command line params: 1) path to HaGRID dataset (required) and 2) video input device (optional, default: 0)**
   - **how to: perform gestures with an aruco board as background**
   - **like gesture: volume up**

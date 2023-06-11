@@ -1,6 +1,7 @@
 import cv2
 import json
 import numpy as np
+import pandas as pd
 import os
 
 # import a lot of things from keras:
@@ -195,4 +196,5 @@ class ModelBuilder:
 
     def load_model(self):
         self.model = load_model("gesture_recognition_media")
-        self.label_names = np.genfromtxt('label_names.csv', delimiter=',')
+        self.label_names = pd.read_csv('label_names.csv', header=None).values.tolist()
+        self.label_names = list(np.concatenate(self.label_names).flat)
